@@ -21,15 +21,39 @@ export interface WhatsAppWebhookPayload {
 export class WhatsAppService {
   async sendMessage(phoneNumber: string, message: string): Promise<string> {
     try {
-      // Mock WhatsApp API call - in production, use actual WhatsApp Business API
-      const messageId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // For production, replace with actual WhatsApp Business API call
+      const whatsappToken = process.env.WHATSAPP_ACCESS_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!whatsappToken || !phoneNumberId) {
+        // Development mode - log the message
+        console.log(`[DEV] WhatsApp send to ${phoneNumber}: ${message}`);
+        return `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
       
-      console.log(`Mock WhatsApp send to ${phoneNumber}: ${message}`);
+      // Production WhatsApp Business API call
+      const response = await fetch(`https://graph.facebook.com/v17.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${whatsappToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: phoneNumber,
+          type: 'text',
+          text: {
+            body: message
+          }
+        })
+      });
       
-      return messageId;
+      if (!response.ok) {
+        throw new Error(`WhatsApp API error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result.messages[0].id;
     } catch (error) {
       console.error('Error sending WhatsApp message:', error);
       throw new Error('Failed to send WhatsApp message');
