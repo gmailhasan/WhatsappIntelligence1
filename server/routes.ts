@@ -5,7 +5,7 @@ import { webScraperService } from "./services/webscraper";
 import { whatsappService } from "./services/whatsapp";
 import { vectorStoreService } from "./services/vectorstore";
 import { openaiService } from "./services/openai";
-import { insertWebsiteSchema, insertTemplateSchema, insertCampaignSchema } from "@shared/schema";
+import { insertWebsiteSchema, insertTemplateSchema, insertCampaignSchema, insertConversationSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats
@@ -160,6 +160,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(conversations);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+  });
+
+  app.post("/api/conversations", async (req, res) => {
+    try {
+      const userId = 1; // Demo user ID
+      const conversationData = insertConversationSchema.parse({ ...req.body, userId });
+      const conversation = await storage.createConversation(conversationData);
+      res.json(conversation);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid conversation data" });
     }
   });
 
