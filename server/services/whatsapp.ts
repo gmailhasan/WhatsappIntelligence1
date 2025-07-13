@@ -80,6 +80,46 @@ export class WhatsAppService {
     }
   }
 
+  async sendWhatsAppTemplate(phoneNumber: string, templateName: string, components: any[] = []): Promise<string> {
+    try {
+      const whatsappToken = process.env.WHATSAPP_ACCESS_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      
+      if (!whatsappToken || !phoneNumberId) {
+        console.log(`[DEV] WhatsApp template send to ${phoneNumber}: ${templateName}`);
+        return `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+
+      const response = await fetch(`https://graph.facebook.com/v17.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${whatsappToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: phoneNumber,
+          type: 'template',
+          template: {
+            name: templateName,
+            language: { code: 'en_US' },
+            components: components
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`WhatsApp API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.messages[0].id;
+    } catch (error) {
+      console.error('Error sending WhatsApp template:', error);
+      throw error;
+    }
+  }
+
   async handleWebhook(payload: WhatsAppWebhookPayload): Promise<void> {
     try {
       // Handle incoming messages

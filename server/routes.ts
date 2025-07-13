@@ -222,6 +222,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // WhatsApp webhook verification
+  app.get("/api/whatsapp/webhook", (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+    
+    const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+    
+    if (mode === 'subscribe' && token === verifyToken) {
+      console.log('WhatsApp webhook verified');
+      res.status(200).send(challenge);
+    } else {
+      res.status(403).send('Forbidden');
+    }
+  });
+
   // WhatsApp webhook
   app.post("/api/whatsapp/webhook", async (req, res) => {
     try {
