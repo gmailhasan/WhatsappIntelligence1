@@ -1,0 +1,9 @@
+services:
+  whatsapp-intelligence:
+    build: .
+    ports:
+      - "80:3400"
+    environment:
+      - NODE_ENV=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    restart: unless-stopped
