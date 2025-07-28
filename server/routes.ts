@@ -5,14 +5,45 @@ import { webScraperService } from "./services/webscraper";
 import { whatsappService } from "./services/whatsapp";
 import { vectorStoreService } from "./services/vectorstore";
 import { openaiService } from "./services/openai";
-import { insertWebsiteSchema, insertTemplateSchema, insertCampaignSchema, insertConversationSchema } from "@shared/schema";
+import { insertWebsiteSchema, insertTemplateSchema, insertCampaignSchema, insertConversationSchema, insertCompanySchema } from "@shared/schema";
+import { companyOnboardingService } from "./services/company-onboarding";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Dashboard stats
+  // Company onboarding endpoints
+  app.post("/api/admin/companies/onboard", async (req, res) => {
+    try {
+      const result = await companyOnboardingService.onboardNewCompany(req.body);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to onboard company" });
+    }
+  });
+
+  app.post("/api/companies/:id/invite", async (req, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const user = await companyOnboardingService.inviteTeamMember(companyId, req.body);
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to invite team member" });
+    }
+  });
+
+  app.put("/api/companies/:id/whatsapp", async (req, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const company = await companyOnboardingService.updateCompanyWhatsAppSettings(companyId, req.body);
+      res.json(company);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update WhatsApp settings" });
+    }
+  });
+
+  // Dashboard stats (for demo - using companyId = 1)
   app.get("/api/stats", async (req, res) => {
     try {
-      const userId = 1; // Demo user ID
-      const stats = await storage.getStatsForUser(userId);
+      const companyId = 1; // Demo company ID
+      const stats = await storage.getStatsForCompany(companyId);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stats" });

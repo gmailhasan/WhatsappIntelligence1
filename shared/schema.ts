@@ -2,18 +2,34 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Companies table for multi-tenant support
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  domain: text("domain").unique(),
+  whatsappPhoneNumberId: text("whatsapp_phone_number_id"),
+  whatsappAccessToken: text("whatsapp_access_token"),
+  whatsappVerifyToken: text("whatsapp_verify_token"),
+  status: text("status").notNull().default("active"), // active, suspended, trial
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
+  role: text("role").notNull().default("agent"), // super_admin, company_admin, manager, agent
+  status: text("status").notNull().default("active"), // active, inactive
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const websites = pgTable("websites", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  companyId: integer("company_id").notNull(),
   url: text("url").notNull(),
   status: text("status").notNull().default("pending"), // pending, crawling, completed, failed
   crawlDepth: integer("crawl_depth").notNull().default(1),
@@ -34,7 +50,7 @@ export const websiteContent = pgTable("website_content", {
 
 export const templates = pgTable("templates", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  companyId: integer("company_id").notNull(),
   name: text("name").notNull(),
   category: text("category").notNull(),
   content: text("content").notNull(),
@@ -45,7 +61,7 @@ export const templates = pgTable("templates", {
 
 export const campaigns = pgTable("campaigns", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  companyId: integer("company_id").notNull(),
   name: text("name").notNull(),
   templateId: integer("template_id").notNull(),
   status: text("status").notNull().default("draft"), // draft, active, paused, completed
@@ -59,7 +75,7 @@ export const campaigns = pgTable("campaigns", {
 
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  companyId: integer("company_id").notNull(),
   campaignId: integer("campaign_id"),
   phoneNumber: text("phone_number").notNull(),
   customerName: text("customer_name"),
@@ -81,6 +97,12 @@ export const messages = pgTable("messages", {
 });
 
 // Insert schemas
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -122,6 +144,9 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 });
 
 // Types
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
