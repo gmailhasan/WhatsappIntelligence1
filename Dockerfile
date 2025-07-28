@@ -5,4 +5,4 @@ COPY package*.json ./
 COPY dist ./dist
 COPY client ./client
 RUN npm install
-ENTRYPOINT ["node", "dist/index.js"]
+ENTRYPOINT ["npm", "start"]
