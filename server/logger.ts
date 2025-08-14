@@ -1,5 +1,14 @@
 
 import winston from 'winston';
+import 'winston-daily-rotate-file';
+
+const dailyRotateTransport = new winston.transports.DailyRotateFile({
+  filename: 'app-%DATE%.log',
+  datePattern: 'YYYY-MM-DD',
+  dirname: '.', // or specify a logs directory
+  maxFiles: '14d', // keep logs for 14 days
+  zippedArchive: true,
+});
 
 class Logger {
   private static instance: winston.Logger;
@@ -18,7 +27,7 @@ class Logger {
         ),
         transports: [
           new winston.transports.Console(),
-          new winston.transports.File({ filename: 'app.log' })
+          dailyRotateTransport,
         ],
       });
     }
