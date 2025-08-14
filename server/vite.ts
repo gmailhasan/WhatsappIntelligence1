@@ -1,3 +1,4 @@
+import { logger } from './logger';
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
@@ -16,7 +17,7 @@ export function log(message: string, source = "express") {
     hour12: true,
   });
 
-  console.log(`${formattedTime} [${source}] ${message}`);
+  logger.info(`${formattedTime} [${source}] ${message}`);
 }
 
 export async function setupVite(app: Express, server: Server) {
@@ -33,6 +34,7 @@ export async function setupVite(app: Express, server: Server) {
       ...viteLogger,
       error: (msg, options) => {
         viteLogger.error(msg, options);
+        logger.error(`Vite error: ${msg}`);
         process.exit(1);
       },
     },
@@ -62,6 +64,7 @@ export async function setupVite(app: Express, server: Server) {
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
+      logger.error(`SSR error: ${e}`);
       next(e);
     }
   });
@@ -71,6 +74,7 @@ export function serveStatic(app: Express) {
   const distPath = path.resolve(import.meta.dirname, "public");
 
   if (!fs.existsSync(distPath)) {
+    logger.error(`Could not find the build directory: ${distPath}, make sure to build the client first`);
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );

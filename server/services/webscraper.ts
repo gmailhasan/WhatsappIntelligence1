@@ -1,3 +1,4 @@
+import { logger } from '../logger';
 import * as cheerio from 'cheerio';
 import { storage } from '../storage';
 import { openaiService } from './openai';
@@ -12,6 +13,7 @@ export interface CrawlResult {
 export class WebScraperService {
   async crawlWebsite(websiteId: number, url: string, depth: number = 1): Promise<void> {
     try {
+      logger.info(`Starting crawl for website ${websiteId} at ${url} with depth ${depth}`);
       await storage.updateWebsite(websiteId, { status: "crawling" });
       
       const visited = new Set<string>();
@@ -26,6 +28,7 @@ export class WebScraperService {
         }
 
         try {
+          logger.info(`Crawling URL: ${currentUrl}`);
           const result = await this.scrapeUrl(currentUrl);
           visited.add(currentUrl);
           
@@ -42,6 +45,7 @@ export class WebScraperService {
           });
           
           pagesIndexed++;
+          logger.info(`Indexed page: ${currentUrl} (title: ${result.title})`);
           
           // Add new links to visit if we haven't reached max depth
           if (currentDepth < depth - 1) {
@@ -56,24 +60,27 @@ export class WebScraperService {
           await storage.updateWebsite(websiteId, { pagesIndexed });
           
         } catch (error) {
-          console.error(`Error crawling ${currentUrl}:`, error);
+          logger.error(`Error crawling ${currentUrl}:`, error);
         }
       }
 
+      logger.info(`Crawl completed for website ${websiteId}. Pages indexed: ${pagesIndexed}`);
       await storage.updateWebsite(websiteId, { 
         status: "completed",
         pagesIndexed,
       });
       
     } catch (error) {
-      console.error(`Error crawling website ${websiteId}:`, error);
+      logger.error(`Error crawling website ${websiteId}:`, error);
       await storage.updateWebsite(websiteId, { status: "failed" });
     }
   }
 
   private async scrapeUrl(url: string): Promise<CrawlResult> {
+    logger.info(`Scraping URL: ${url}`);
     const response = await fetch(url);
     if (!response.ok) {
+      logger.error(`Failed to fetch ${url}: ${response.status}`);
       throw new Error(`Failed to fetch ${url}: ${response.status}`);
     }
 
