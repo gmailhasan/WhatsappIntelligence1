@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import { storage } from '../storage';
 import { openaiService } from './openai';
+import { upsertVector } from './pinecone';
 
 export interface CrawlResult {
   url: string;
@@ -31,8 +32,20 @@ export class WebScraperService {
           
           // Generate embedding for the content
           const embedding = await openaiService.generateEmbedding(result.content);
-          
-          // Store the content
+
+          // Store the content in Pinecone
+          await upsertVector(
+            `${websiteId}:${currentUrl}`,
+            embedding,
+            {
+              websiteId,
+              url: currentUrl,
+              title: result.title,
+              content: result.content,
+            }
+          );
+
+          // Optionally, keep the current storage for backup/migration
           await storage.createWebsiteContent({
             websiteId,
             url: currentUrl,
