@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { webScraperService } from "./services/webscraper";
-import { whatsappService } from "./services/whatsapp";
+import { whatsappService, type WhatsAppWebhookPayload } from "./services/whatsapp";
 import { vectorStoreService } from "./services/vectorstore";
 import { openaiService } from "./services/openai";
 import { insertWebsiteSchema, insertTemplateSchema, insertCampaignSchema, insertConversationSchema } from "@shared/schema";
@@ -242,8 +242,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WhatsApp webhook
   app.post("/api/whatsapp/webhook", async (req, res) => {
     try {
-      logger.info('Received WhatsApp webhook payload:' );
-      await whatsappService.handleWebhook(req.body);
+      // Transform incoming WhatsApp Cloud API payload to WhatsAppWebhookPayload
+      const entry = req.body.entry?.[0];
+      const value = entry?.changes?.[0]?.value;
+
+      const payload: WhatsAppWebhookPayload = {
+        messages: value?.messages?.map((msg: any) => ({
+          id: msg.id,
+          from: msg.from,
+          text: msg.text?.body || "",
+          timestamp: Number(msg.timestamp),
+        })),
+      };
+
+      logger.info('Received WhatsApp webhook payload', payload);
+      await whatsappService.handleWebhook(payload);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to process webhook" });
