@@ -1,3 +1,4 @@
+import { logger } from './logger';
 import { 
   users, websites, websiteContent, templates, campaigns, conversations, messages,
   type User, type InsertUser, type Website, type InsertWebsite, type WebsiteContent,
@@ -77,6 +78,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     // Initialize with a demo user
+    logger.info('Initializing MemStorage with demo user');
     this.createUser({
       username: "demo",
       password: "demo123",
@@ -94,6 +96,7 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    logger.info(`Creating user: ${insertUser.username}`);
     const id = this.currentUserId++;
     const user: User = {
       ...insertUser,
@@ -233,6 +236,7 @@ export class MemStorage implements IStorage {
   }
 
   async updateCampaign(id: number, updates: Partial<Campaign>): Promise<Campaign> {
+    logger.info(`Updating campaign ${id}`);
     const campaign = this.campaigns.get(id);
     if (!campaign) throw new Error("Campaign not found");
     
@@ -270,6 +274,7 @@ export class MemStorage implements IStorage {
   }
 
   async updateConversation(id: number, updates: Partial<Conversation>): Promise<Conversation> {
+    logger.info(`Updating conversation ${id}`);
     const conversation = this.conversations.get(id);
     if (!conversation) throw new Error("Conversation not found");
     
@@ -289,6 +294,7 @@ export class MemStorage implements IStorage {
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    logger.info(`Creating message for conversation ${insertMessage.conversationId}`);
     const id = this.currentMessageId++;
     const message: Message = {
       ...insertMessage,

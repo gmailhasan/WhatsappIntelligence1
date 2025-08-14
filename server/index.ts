@@ -1,3 +1,4 @@
+import { logger } from './logger';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -30,6 +31,7 @@ app.use((req, res, next) => {
       }
 
       log(logLine);
+      logger.info(logLine);
     }
   });
 
@@ -62,8 +64,10 @@ app.use((req, res, next) => {
   const port = 3400;
   server.listen(port, () => {
     log(`serving on port ${port}`);
+    logger.info(`serving on port ${port}`);
   });
 })().catch((err) => {
   log(`Error during server setup: ${err.message}`, "server") ;
+  logger.error(`Error during server setup: ${err.message}`);
   process.exit(1);
 });

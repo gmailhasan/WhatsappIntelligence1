@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { logger } from '../logger';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
@@ -45,7 +46,7 @@ Respond in JSON format with the following structure:
         sources: result.sources || [],
       };
     } catch (error) {
-      console.error("OpenAI API Error:", error);
+      logger.error("OpenAI API Error:", error);
       throw new Error("Failed to generate AI response");
     }
   }
@@ -59,7 +60,7 @@ Respond in JSON format with the following structure:
 
       return response.data[0].embedding;
     } catch (error) {
-      console.error("OpenAI Embedding Error:", error);
+      logger.error("OpenAI Embedding Error:", error);
       throw new Error("Failed to generate embedding");
     }
   }
@@ -81,7 +82,7 @@ Respond in JSON format with the following structure:
 
       return response.choices[0].message.content || content;
     } catch (error) {
-      console.error("OpenAI Summarize Error:", error);
+      logger.error("OpenAI Summarize Error:", error);
       return content; // Return original content if summarization fails
     }
   }

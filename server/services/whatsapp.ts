@@ -1,3 +1,4 @@
+import { logger } from '../logger';
 import { storage } from '../storage';
 import { openaiService } from './openai';
 import { vectorStoreService } from './vectorstore';
@@ -27,7 +28,7 @@ export class WhatsAppService {
       
       if (!whatsappToken || !phoneNumberId) {
         // Development mode - log the message
-        console.log(`[DEV] WhatsApp send to ${phoneNumber}: ${message}`);
+        logger.info(`[DEV] WhatsApp send to ${phoneNumber}: ${message}`);
         return `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
       
@@ -49,13 +50,14 @@ export class WhatsAppService {
       });
       
       if (!response.ok) {
+        logger.error(`WhatsApp API error: ${response.status}`);
         throw new Error(`WhatsApp API error: ${response.status}`);
       }
       
       const result = await response.json();
       return result.messages[0].id;
     } catch (error) {
-      console.error('Error sending WhatsApp message:', error);
+      logger.error('Error sending WhatsApp message:', error);
       throw new Error('Failed to send WhatsApp message');
     }
   }
@@ -64,6 +66,7 @@ export class WhatsAppService {
     try {
       const template = await storage.getTemplate(templateId);
       if (!template) {
+        logger.error('Template not found');
         throw new Error('Template not found');
       }
 
@@ -75,7 +78,7 @@ export class WhatsAppService {
 
       return await this.sendMessage(phoneNumber, message);
     } catch (error) {
-      console.error('Error sending template message:', error);
+      logger.error('Error sending template message:', error);
       throw error;
     }
   }
@@ -86,7 +89,7 @@ export class WhatsAppService {
       const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
       
       if (!whatsappToken || !phoneNumberId) {
-        console.log(`[DEV] WhatsApp template send to ${phoneNumber}: ${templateName}`);
+        logger.info(`[DEV] WhatsApp template send to ${phoneNumber}: ${templateName}`);
         return `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
 
@@ -109,13 +112,14 @@ export class WhatsAppService {
       });
 
       if (!response.ok) {
+        logger.error(`WhatsApp API error: ${response.status}`);
         throw new Error(`WhatsApp API error: ${response.status}`);
       }
 
       const result = await response.json();
       return result.messages[0].id;
     } catch (error) {
-      console.error('Error sending WhatsApp template:', error);
+      logger.error('Error sending WhatsApp template:', error);
       throw error;
     }
   }
@@ -123,6 +127,7 @@ export class WhatsAppService {
   async handleWebhook(payload: WhatsAppWebhookPayload): Promise<void> {
     try {
       // Handle incoming messages
+      logger.info('Handling WhatsApp webhook payload:', payload);
       if (payload.messages) {
         for (const message of payload.messages) {
           await this.handleIncomingMessage(message);
@@ -136,7 +141,7 @@ export class WhatsAppService {
         }
       }
     } catch (error) {
-      console.error('Error handling WhatsApp webhook:', error);
+      logger.error('Error handling WhatsApp webhook:', error);
     }
   }
 
@@ -175,7 +180,7 @@ export class WhatsAppService {
         await this.generateAIResponse(conversation.id, message.text);
       }
     } catch (error) {
-      console.error('Error handling incoming message:', error);
+      logger.error('Error handling incoming message:', error);
     }
   }
 
@@ -221,7 +226,7 @@ export class WhatsAppService {
       // Send response via WhatsApp
       await this.sendMessage(conversation.phoneNumber, aiResponse.content);
     } catch (error) {
-      console.error('Error generating AI response:', error);
+      logger.error('Error generating AI response:', error);
     }
   }
 
@@ -230,21 +235,24 @@ export class WhatsAppService {
       // Find message by WhatsApp message ID and update status
       const messages = Array.from(await storage.getMessagesByConversationId(1)); // This would need to be more sophisticated
       // For now, we'll just log the status update
-      console.log(`Message ${status.id} status updated to: ${status.status}`);
+      logger.info(`Message ${status.id} status updated to: ${status.status}`);
     } catch (error) {
-      console.error('Error handling status update:', error);
+      logger.error('Error handling status update:', error);
     }
   }
 
   async sendBulkMessages(campaignId: number): Promise<void> {
+    logger.info(`Starting bulk message send for campaign ${campaignId}`);
     try {
       const campaign = await storage.getCampaign(campaignId);
       if (!campaign) {
+        logger.error(`Campaign not found: ${campaignId}`);
         throw new Error('Campaign not found');
       }
 
       const template = await storage.getTemplate(campaign.templateId);
       if (!template) {
+        logger.error(`Template not found for campaign ${campaignId}`);
         throw new Error('Template not found');
       }
 
@@ -253,22 +261,24 @@ export class WhatsAppService {
 
       for (const phoneNumber of phoneNumbers) {
         try {
+          logger.info(`Sending template message to ${phoneNumber} for campaign ${campaignId}`);
           await this.sendTemplateMessage(campaign.templateId, phoneNumber, {
             name: `Customer ${phoneNumber}`,
           });
           messagesSent++;
         } catch (error) {
-          console.error(`Error sending message to ${phoneNumber}:`, error);
+          logger.error(`Error sending message to ${phoneNumber}:`, error);
         }
       }
 
+      logger.info(`Bulk message send completed for campaign ${campaignId}. Messages sent: ${messagesSent}`);
       // Update campaign stats
       await storage.updateCampaign(campaignId, {
         messagesSent,
         status: "active",
       });
     } catch (error) {
-      console.error('Error sending bulk messages:', error);
+      logger.error('Error sending bulk messages:', error);
       throw error;
     }
   }

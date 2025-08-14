@@ -6,6 +6,7 @@ import { whatsappService } from "./services/whatsapp";
 import { vectorStoreService } from "./services/vectorstore";
 import { openaiService } from "./services/openai";
 import { insertWebsiteSchema, insertTemplateSchema, insertCampaignSchema, insertConversationSchema } from "@shared/schema";
+import { logger } from './logger';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats
@@ -231,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
     
     if (mode === 'subscribe' && token === verifyToken) {
-      console.log('WhatsApp webhook verified');
+      logger.info('WhatsApp webhook verified');
       res.status(200).send(challenge);
     } else {
       res.status(403).send('Forbidden');
@@ -241,6 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WhatsApp webhook
   app.post("/api/whatsapp/webhook", async (req, res) => {
     try {
+      logger.info('Received WhatsApp webhook payload:' );
       await whatsappService.handleWebhook(req.body);
       res.json({ success: true });
     } catch (error) {
