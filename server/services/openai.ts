@@ -22,7 +22,7 @@ ${context.join('\n\n')}
 
 Respond in JSON format with the following structure:
 {
-  "content": "Your response to the user",
+  "content": "Your response to the user, formatted Markdown for clarity and readability (use lists, bold, code blocks, etc. as appropriate)",
   "confidence": 0.95,
   "sources": ["source1", "source2"]
 }`;
@@ -39,6 +39,8 @@ Respond in JSON format with the following structure:
       });
 
       const result = JSON.parse(response.choices[0].message.content || "{}");
+
+      logger.info("OpenAI Response:", result);
       
       return {
         content: result.content || "I'm sorry, I couldn't generate a response.",
