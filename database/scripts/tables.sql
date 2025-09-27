@@ -27,6 +27,7 @@ CREATE TABLE website_content (
   createdAt DATETIME NOT NULL,
   FOREIGN KEY (websiteId) REFERENCES websites(id)
 );
+ALTER TABLE website_content ADD COLUMN embedding JSON;
 
 CREATE TABLE templates (
   id INT AUTO_INCREMENT PRIMARY KEY,

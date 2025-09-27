@@ -43,12 +43,19 @@ export class MySQLStorage implements IStorage {
 
   async getWebsiteContent(websiteId: number): Promise<WebsiteContent[]> {
     const [rows] = await pool.query('SELECT * FROM website_content WHERE websiteId = ?', [websiteId]);
-    return rows as WebsiteContent[];
+    return (rows as WebsiteContent[]).map(row => ({
+      ...row,
+      embedding: typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding
+    }));
   }
 
   async createWebsiteContent(content: Omit<WebsiteContent, "id" | "createdAt">): Promise<WebsiteContent> {
-    const [result]: any = await pool.query('INSERT INTO website_content (websiteId, content, title, createdAt) VALUES (?, ?, ?, ?)', [content.websiteId, content.content, content.title, new Date()]);
-    return { ...content, id: result.insertId, createdAt: new Date() };
+    const embedding = (content as any).embedding ? JSON.stringify((content as any).embedding) : null;
+    const [result]: any = await pool.query(
+      'INSERT INTO website_content (websiteId, content, title, createdAt, embedding) VALUES (?, ?, ?, ?, ?)',
+      [content.websiteId, content.content, content.title, new Date(), embedding]
+    );
+    return { ...content, id: result.insertId, createdAt: new Date(), embedding: (content as any).embedding };
   }
 
   async searchWebsiteContent(userId: number, query: string): Promise<WebsiteContent[]> {
