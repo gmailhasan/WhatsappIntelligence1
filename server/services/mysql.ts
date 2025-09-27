@@ -11,7 +11,7 @@ if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_PASSWORD || !MYSQL_DATABASE) {
   throw new Error('Missing MySQL environment variables');
 }
 
-const pool = mysql.createPool({
+export const pool = mysql.createPool({
   host: MYSQL_HOST,
   user: MYSQL_USER,
   password: MYSQL_PASSWORD,
