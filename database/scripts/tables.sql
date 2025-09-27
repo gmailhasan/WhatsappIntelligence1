@@ -77,3 +77,6 @@ CREATE TABLE messages (
   whatsappMessageId VARCHAR(255),
   FOREIGN KEY (conversationId) REFERENCES conversations(id)
 );
+
+INSERT INTO users (id, username, password, email, name, createdAt)
+VALUES (1, 'demo', 'demo123', 'demo@example.com', 'Demo User', NOW());
