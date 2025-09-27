@@ -37,8 +37,8 @@ export class MySQLStorage implements IStorage {
   }
 
   async deleteWebsite(id: number): Promise<void> {
-    await pool.query('DELETE FROM websites WHERE id = ?', [id]);
     await pool.query('DELETE FROM website_content WHERE websiteId = ?', [id]);
+    await pool.query('DELETE FROM websites WHERE id = ?', [id]);
   }
 
   async getWebsiteContent(websiteId: number): Promise<WebsiteContent[]> {
