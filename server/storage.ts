@@ -1,3 +1,180 @@
+import { pool } from './services/mysql';
+
+export class MySQLStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
+    return (rows as User[])[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+    return (rows as User[])[0];
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [result]: any = await pool.query('INSERT INTO users (username, password, email, name) VALUES (?, ?, ?, ?)', [user.username, user.password, user.email, user.name]);
+    return { ...user, id: result.insertId, createdAt: new Date() };
+  }
+
+  async getWebsitesByUserId(userId: number): Promise<Website[]> {
+    const [rows] = await pool.query('SELECT * FROM websites WHERE userId = ?', [userId]);
+    return rows as Website[];
+  }
+
+  async getWebsite(id: number): Promise<Website | undefined> {
+    const [rows] = await pool.query('SELECT * FROM websites WHERE id = ?', [id]);
+    return (rows as Website[])[0];
+  }
+
+  async createWebsite(website: InsertWebsite): Promise<Website> {
+    const [result]: any = await pool.query('INSERT INTO websites (userId, url, crawlDepth, status, pagesIndexed, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)', [website.userId, website.url, website.crawlDepth || 1, 'pending', 0, new Date(), new Date()]);
+  return { ...website, id: result.insertId, status: 'pending', pagesIndexed: 0, createdAt: new Date(), updatedAt: new Date(), crawlDepth: website.crawlDepth || 1 };
+  }
+
+  async updateWebsite(id: number, updates: Partial<Website>): Promise<Website> {
+    await pool.query('UPDATE websites SET ? WHERE id = ?', [updates, id]);
+    return this.getWebsite(id) as Promise<Website>;
+  }
+
+  async deleteWebsite(id: number): Promise<void> {
+    await pool.query('DELETE FROM website_content WHERE websiteId = ?', [id]);
+    await pool.query('DELETE FROM websites WHERE id = ?', [id]);
+  }
+
+  async getWebsiteContent(websiteId: number): Promise<WebsiteContent[]> {
+    const [rows] = await pool.query('SELECT * FROM website_content WHERE websiteId = ?', [websiteId]);
+    return (rows as WebsiteContent[]).map(row => ({
+      ...row,
+      embedding: typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding
+    }));
+  }
+
+  async createWebsiteContent(content: Omit<WebsiteContent, "id" | "createdAt">): Promise<WebsiteContent> {
+    const embedding = (content as any).embedding ? JSON.stringify((content as any).embedding) : null;
+    const [result]: any = await pool.query(
+      'INSERT INTO website_content (websiteId, content, title, createdAt, embedding) VALUES (?, ?, ?, ?, ?)',
+      [content.websiteId, content.content, content.title, new Date(), embedding]
+    );
+    return { ...content, id: result.insertId, createdAt: new Date(), embedding: (content as any).embedding };
+  }
+
+  async searchWebsiteContent(userId: number, query: string): Promise<WebsiteContent[]> {
+    const [rows] = await pool.query('SELECT wc.* FROM website_content wc JOIN websites w ON wc.websiteId = w.id WHERE w.userId = ? AND (wc.content LIKE ? OR wc.title LIKE ?)', [userId, `%${query}%`, `%${query}%`]);
+    return rows as WebsiteContent[];
+  }
+
+  async getTemplatesByUserId(userId: number): Promise<Template[]> {
+    const [rows] = await pool.query('SELECT * FROM templates WHERE userId = ?', [userId]);
+    return rows as Template[];
+  }
+
+  async getTemplate(id: number): Promise<Template | undefined> {
+    const [rows] = await pool.query('SELECT * FROM templates WHERE id = ?', [id]);
+    return (rows as Template[])[0];
+  }
+
+  async createTemplate(template: InsertTemplate): Promise<Template> {
+    const [result]: any = await pool.query('INSERT INTO templates (userId, name, variables, enableAI, createdAt) VALUES (?, ?, ?, ?, ?)', [template.userId, template.name, JSON.stringify(template.variables || {}), template.enableAI || false, new Date()]);
+    return { ...template, id: result.insertId, createdAt: new Date(), variables: template.variables || {}, enableAI: template.enableAI || false };
+  }
+
+  async updateTemplate(id: number, updates: Partial<Template>): Promise<Template> {
+    await pool.query('UPDATE templates SET ? WHERE id = ?', [updates, id]);
+    return this.getTemplate(id) as Promise<Template>;
+  }
+
+  async deleteTemplate(id: number): Promise<void> {
+    await pool.query('DELETE FROM templates WHERE id = ?', [id]);
+  }
+
+  async getCampaignsByUserId(userId: number): Promise<Campaign[]> {
+    const [rows] = await pool.query('SELECT * FROM campaigns WHERE userId = ?', [userId]);
+    return rows as Campaign[];
+  }
+
+  async getCampaign(id: number): Promise<Campaign | undefined> {
+    const [rows] = await pool.query('SELECT * FROM campaigns WHERE id = ?', [id]);
+    return (rows as Campaign[])[0];
+  }
+
+  async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
+    const [result]: any = await pool.query('INSERT INTO campaigns (userId, name, status, messagesSent, responsesReceived, createdAt, updatedAt, phoneNumbers, scheduledFor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [campaign.userId, campaign.name, 'draft', 0, 0, new Date(), new Date(), JSON.stringify(campaign.phoneNumbers || []), campaign.scheduledFor || null]);
+    return { ...campaign, id: result.insertId, status: 'draft', messagesSent: 0, responsesReceived: 0, createdAt: new Date(), updatedAt: new Date(), phoneNumbers: campaign.phoneNumbers || [], scheduledFor: campaign.scheduledFor || null };
+  }
+
+  async updateCampaign(id: number, updates: Partial<Campaign>): Promise<Campaign> {
+    await pool.query('UPDATE campaigns SET ? WHERE id = ?', [updates, id]);
+    return this.getCampaign(id) as Promise<Campaign>;
+  }
+
+  async deleteCampaign(id: number): Promise<void> {
+    await pool.query('DELETE FROM campaigns WHERE id = ?', [id]);
+  }
+
+  async getConversationsByUserId(userId: number): Promise<Conversation[]> {
+    const [rows] = await pool.query('SELECT * FROM conversations WHERE userId = ?', [userId]);
+    return rows as Conversation[];
+  }
+
+  async getConversation(id: number): Promise<Conversation | undefined> {
+    const [rows] = await pool.query('SELECT * FROM conversations WHERE id = ?', [id]);
+    return (rows as Conversation[])[0];
+  }
+
+  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+    const [result]: any = await pool.query('INSERT INTO conversations (userId, campaignId, phoneNumber, status, lastMessageAt, createdAt, customerName, aiEnabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [conversation.userId, conversation.campaignId || null, conversation.phoneNumber, 'active', new Date(), new Date(), conversation.customerName || null, conversation.aiEnabled || false]);
+    return { ...conversation, id: result.insertId, status: 'active', lastMessageAt: new Date(), createdAt: new Date(), campaignId: conversation.campaignId || null, customerName: conversation.customerName || null, aiEnabled: conversation.aiEnabled || false };
+  }
+
+  async updateConversation(id: number, updates: Partial<Conversation>): Promise<Conversation> {
+    await pool.query('UPDATE conversations SET ? WHERE id = ?', [updates, id]);
+    return this.getConversation(id) as Promise<Conversation>;
+  }
+
+  async getConversationByPhoneNumber(phoneNumber: string): Promise<Conversation | undefined> {
+    const [rows] = await pool.query('SELECT * FROM conversations WHERE phoneNumber = ?', [phoneNumber]);
+    return (rows as Conversation[])[0];
+  }
+
+  async getMessagesByConversationId(conversationId: number): Promise<Message[]> {
+    const [rows] = await pool.query('SELECT * FROM messages WHERE conversationId = ? ORDER BY createdAt ASC', [conversationId]);
+    return rows as Message[];
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [result]: any = await pool.query('INSERT INTO messages (conversationId, sender, content, status, createdAt, messageType, whatsappMessageId) VALUES (?, ?, ?, ?, ?, ?, ?)', [message.conversationId, message.sender, message.content, 'sent', new Date(), message.messageType || 'text', message.whatsappMessageId || null]);
+    return { ...message, id: result.insertId, status: 'sent', createdAt: new Date(), messageType: message.messageType || 'text', whatsappMessageId: message.whatsappMessageId || null };
+  }
+
+  async updateMessage(id: number, updates: Partial<Message>): Promise<Message> {
+    await pool.query('UPDATE messages SET ? WHERE id = ?', [updates, id]);
+    return this.getMessage(id) as Promise<Message>;
+  }
+
+  async getMessage(id: number): Promise<Message | undefined> {
+    const [rows] = await pool.query('SELECT * FROM messages WHERE id = ?', [id]);
+    return (rows as Message[])[0];
+  }
+
+  async getStatsForUser(userId: number): Promise<{ totalMessages: number; activeCampaigns: number; aiResponses: number; responseRate: number; }> {
+    const [campaignRows] = await pool.query('SELECT * FROM campaigns WHERE userId = ?', [userId]);
+    const userCampaigns = campaignRows as Campaign[];
+    const [conversationRows] = await pool.query('SELECT * FROM conversations WHERE userId = ?', [userId]);
+    const userConversations = conversationRows as Conversation[];
+    const [messageRows] = await pool.query('SELECT * FROM messages WHERE sender = "ai" AND conversationId IN (SELECT id FROM conversations WHERE userId = ?)', [userId]);
+    const aiResponses = (messageRows as Message[]).length;
+    const totalMessages = userCampaigns.reduce((sum, campaign) => sum + (campaign.messagesSent || 0), 0);
+    const activeCampaigns = userCampaigns.filter(c => c.status === "active").length;
+    const responsesReceived = userCampaigns.reduce((sum, campaign) => sum + (campaign.responsesReceived || 0), 0);
+    const responseRate = totalMessages > 0 ? (responsesReceived / totalMessages) * 100 : 0;
+    return {
+      totalMessages,
+      activeCampaigns,
+      aiResponses,
+      responseRate: Math.round(responseRate * 10) / 10,
+    };
+  }
+}
 import { logger } from './logger';
 import { 
   users, websites, websiteContent, templates, campaigns, conversations, messages,
@@ -344,4 +521,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new MySQLStorage();
