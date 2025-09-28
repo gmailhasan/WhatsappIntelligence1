@@ -55,13 +55,13 @@ export class MySQLStorage implements IStorage {
     return (rows as WebsiteContent[]).map(row => ({
       ...row,
       embedding: typeof row.embedding === 'string' && row.embedding.length > 0
-        ? row.embedding.split(',').map(Number)
+        ? JSON.parse(row.embedding)
         : undefined
     }));
   }
 
   async createWebsiteContent(content: Omit<WebsiteContent, "id" | "createdAt">): Promise<WebsiteContent> {
-    const embedding = (content as any).embedding ? (content as any).embedding.join(',') : null;
+    const embedding = (content as any).embedding ? JSON.stringify((content as any).embedding) : null;
     const [result]: any = await pool.query(
       'INSERT INTO website_content (websiteId, content, title, createdAt, embedding) VALUES (?, ?, ?, ?, ?)',
       [content.websiteId, content.content, content.title, new Date(), embedding]
