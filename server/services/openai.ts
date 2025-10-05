@@ -12,7 +12,20 @@ export interface AIResponse {
   sources: string[];
 }
 
-export class OpenAIService {
+import { ConversationHistoryItem, LLMClient } from "./orchestrator/types";
+
+export class OpenAIService implements LLMClient {
+  async chat(history: ConversationHistoryItem[]): Promise<string> {
+    // Only keep the last 10 conversation items
+    const recentHistory = history.slice(-10);
+    const context: string[] = recentHistory
+      .filter((item) => item.role === "assistant" || item.role === "user")
+      .map((item) => `${item.role}: ${item.content}`);
+    const lastUserMsg = [...recentHistory].reverse().find((item) => item.role === "user");
+    const query = lastUserMsg?.content || "";
+    const aiResp = await this.generateResponse(query, context);
+    return aiResp.content;
+  }
   async generateResponse(query: string, context: string[]): Promise<AIResponse> {
     try {
       const systemPrompt = `You are a helpful customer service assistant. Use the provided context to answer user questions accurately and helpfully. If you cannot find the answer in the context, politely say so and suggest they contact support.
