@@ -7,6 +7,7 @@ import { vectorStoreService } from "./services/vectorstore";
 import { openaiService } from "./services/openai";
 import { insertWebsiteSchema, insertTemplateSchema, insertCampaignSchema, insertConversationSchema } from "@shared/schema";
 import { logger } from './logger';
+import { ConversationHistoryItem } from "./services/orchestrator/types";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats
@@ -313,6 +314,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test AI response
+  // In-memory chat history per user (for demo/testing only)
+  const chatHistories: Record<string, ConversationHistoryItem[]> = {};
+
   app.post("/api/test-ai", async (req, res) => {
     try {
       const { query } = req.body;
@@ -322,12 +326,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logger.warn('AI test query missing');
         return res.status(400).json({ error: "Query is required" });
       }
+      // Initialize or get chat history for user
+      if (!chatHistories[userId]) chatHistories[userId] = [];
+      // Add user message
+      chatHistories[userId].push({ role: 'user', content: query });
+      // Keep only last 10 messages
+      chatHistories[userId] = chatHistories[userId].slice(-10);
+      // Get context from vector search
       const searchResults = await vectorStoreService.searchSimilarContent(userId, query, 3);
       const context = searchResults.map(result => result.content);
-      const aiResponse = await openaiService.generateResponse(query, context);
+      // Add context as assistant messages (optional, or just use chat history)
+      const history: ConversationHistoryItem[] = [
+        ...chatHistories[userId],
+        ...context.map(content => ({ role: 'assistant' as const, content }))
+      ].slice(-10);
+      const aiResponse = await openaiService.chat(history);
+      // Add AI response to history
+  chatHistories[userId].push({ role: 'assistant', content: aiResponse.content });
+      chatHistories[userId] = chatHistories[userId].slice(-10);
       res.json({
         response: aiResponse,
         context: searchResults,
+        history: chatHistories[userId],
       });
     } catch (error) {
       logger.error("Failed to generate AI response", error);

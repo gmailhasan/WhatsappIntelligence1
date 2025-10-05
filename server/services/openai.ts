@@ -1,21 +1,17 @@
 import OpenAI from "openai";
 import { logger } from '../logger';
 
+
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || ""
 });
 
-export interface AIResponse {
-  content: string;
-  confidence: number;
-  sources: string[];
-}
 
-import { ConversationHistoryItem, LLMClient } from "./orchestrator/types";
+import { ConversationHistoryItem, LLMClient, AIResponse } from "./orchestrator/types";
 
 export class OpenAIService implements LLMClient {
-  async chat(history: ConversationHistoryItem[]): Promise<string> {
+  async chat(history: ConversationHistoryItem[]): Promise<AIResponse> {
     // Only keep the last 10 conversation items
     const recentHistory = history.slice(-10);
     const context: string[] = recentHistory
@@ -24,7 +20,7 @@ export class OpenAIService implements LLMClient {
     const lastUserMsg = [...recentHistory].reverse().find((item) => item.role === "user");
     const query = lastUserMsg?.content || "";
     const aiResp = await this.generateResponse(query, context);
-    return aiResp.content;
+    return aiResp;
   }
   async generateResponse(query: string, context: string[]): Promise<AIResponse> {
     try {

@@ -1,3 +1,8 @@
+export interface AIResponse {
+  content: string;
+  confidence: number;
+  sources: string[];
+}
 // types.ts
 export type NodeType = 'trigger' | 'prompt' | 'action' | 'exit';
 
@@ -34,5 +39,5 @@ export interface SessionState {
 }
 
 export interface LLMClient {
-  chat(history: ConversationHistoryItem[]): Promise<string>;
+  chat(history: ConversationHistoryItem[]): Promise<AIResponse>;
 }
