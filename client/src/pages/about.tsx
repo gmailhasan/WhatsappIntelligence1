@@ -1,6 +1,6 @@
 import React from "react";
 
-const version = "0.0.3";
+const version = "0.0.5";
 
 export default function About() {
   return (
