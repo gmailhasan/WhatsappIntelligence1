@@ -50,9 +50,11 @@ Respond in JSON format with the following structure:
       const result = JSON.parse(response.choices[0].message.content || "{}");
 
       logger.info("OpenAI Response:", result);
+
+      const content = ( result.content || "I'm sorry, I couldn't generate a response." ).replace(/\*\*/g, "*");
       
       return {
-        content: result.content || "I'm sorry, I couldn't generate a response.",
+        content,
         confidence: result.confidence || 0.5,
         sources: result.sources || [],
       };
