@@ -21,6 +21,41 @@ export interface WhatsAppWebhookPayload {
 }
 
 export class WhatsAppService {
+  /**
+   * Mark a WhatsApp message as read by its message ID.
+   * @param messageId The WhatsApp message ID to mark as read.
+   * @returns Promise<void>
+   */
+  async setStatus(messageId: string, status: string = 'read'): Promise<void> {
+    try {
+      const whatsappToken = process.env.WHATSAPP_ACCESS_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      if (!whatsappToken || !phoneNumberId) {
+        logger.info(`[DEV] Marked message as read: ${messageId}`);
+        return;
+      }
+      const response = await fetch(`https://graph.facebook.com/v17.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${whatsappToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status,
+          messaging_product: 'whatsapp',
+          message_id: messageId
+        })
+      });
+      if (!response.ok) {
+        logger.error(`WhatsApp API error (setStatus): ${response.status}`);
+        throw new Error(`WhatsApp API error: ${response.status}`);
+      }
+      logger.info(`Marked WhatsApp message as read: ${messageId}`);
+    } catch (error) {
+      logger.error('Error marking WhatsApp message as read:', error);
+      throw error;
+    }
+  }
   async sendMessage(phoneNumber: string, message: string): Promise<string> {
     try {
       // For production, replace with actual WhatsApp Business API call
@@ -150,6 +185,9 @@ export class WhatsAppService {
     try {
       // Find or create conversation
       let conversation = await storage.getConversationByPhoneNumber(message.from);
+      await this.setStatus(message.id).catch((ex) => {
+        logger.warn('Failed to set message status, continuing anyway.',ex);
+      });
       
       if (!conversation) {
         // Create new conversation - for demo, use userId 1
