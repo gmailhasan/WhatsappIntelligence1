@@ -1,6 +1,7 @@
 import { logger } from '../logger';
 import { storage } from '../storage';
 import { openaiService } from './openai';
+import { ConversationHistoryItem } from './orchestrator/types';
 import { vectorStoreService } from './vectorstore';
 
 export interface WhatsAppMessage {
@@ -213,7 +214,13 @@ export class WhatsAppService {
 
       // Generate AI response using relevant content
       const context = searchResults.map(result => result.content);
-      const aiResponse = await openaiService.generateResponse(userMessage, context);
+      const chatHistory: ConversationHistoryItem [] = await storage.getChatHistoryForConversation(conversationId) || [];
+      const historyWithContext: ConversationHistoryItem[] = [
+        ...chatHistory, 
+        ...context.map(content => ({ role: 'assistant' as const, content }))
+      ];
+
+      const aiResponse = await openaiService.chat(historyWithContext);
 
       // Store AI response
       await storage.createMessage({
