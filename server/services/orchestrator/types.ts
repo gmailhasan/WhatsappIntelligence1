@@ -26,7 +26,7 @@ export interface FlowDefinition {
 }
 
 export interface ConversationHistoryItem {
-  role: 'user' | 'assistant'|'system';
+  role: 'user' | 'assistant';
   content: string;
 }
 

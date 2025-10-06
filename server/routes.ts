@@ -338,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add context as assistant messages (optional, or just use chat history)
       const history: ConversationHistoryItem[] = [
         ...chatHistories[userId],
-        ...context.map(content => ({ role: 'system' as const, content }))
+        ...context.map(content => ({ role: 'assistant' as const, content }))
       ].slice(-10);
       const aiResponse = await openaiService.chat(history);
       // Add AI response to history
