@@ -1,6 +1,19 @@
 import { pool } from './services/mysql';
 
 export class MySQLStorage implements IStorage {
+  async getChatHistoryForConversation(id: number): Promise<ConversationHistoryItem[] | undefined> {
+    const [rows] = await pool.query(
+      'SELECT sender, content FROM messages WHERE conversationId = ? ORDER BY createdAt DESC LIMIT 10',
+      [id]
+    );
+    if (!rows || (rows as any[]).length === 0) return undefined;
+    // Reverse to chronological order (oldest first)
+    return (rows as any[]).reverse().map(msg => ({
+      role: msg.sender === 'customer' ? 'user' : 'assistant',
+      content: msg.content
+    })) as ConversationHistoryItem[];
+  }
+
   async getUser(id: number): Promise<User | undefined> {
   const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
   logger.info(`Fetched user with id ${id}`);
@@ -214,6 +227,7 @@ import {
   type Template, type InsertTemplate, type Campaign, type InsertCampaign,
   type Conversation, type InsertConversation, type Message, type InsertMessage
 } from "@shared/schema";
+import { ConversationHistoryItem } from './services/orchestrator/types';
 
 export interface IStorage {
   // User methods
@@ -253,6 +267,7 @@ export interface IStorage {
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   updateConversation(id: number, updates: Partial<Conversation>): Promise<Conversation>;
   getConversationByPhoneNumber(phoneNumber: string): Promise<Conversation | undefined>;
+  getChatHistoryForConversation(id: number): Promise<ConversationHistoryItem []| undefined>;
 
   // Message methods
   getMessagesByConversationId(conversationId: number): Promise<Message[]>;
@@ -495,6 +510,17 @@ export class MemStorage implements IStorage {
   async getConversationByPhoneNumber(phoneNumber: string): Promise<Conversation | undefined> {
     return Array.from(this.conversations.values()).find(conv => conv.phoneNumber === phoneNumber);
   }
+
+  async getChatHistoryForConversation(conversationId: number): Promise<ConversationHistoryItem[]> {
+    const messages = await this.getMessagesByConversationId(conversationId);
+    // Get the latest 10 messages, ordered chronologically
+    const latestMessages = messages.slice(-10);
+    return latestMessages.map(msg => ({
+      role: msg.sender === 'customer' ? 'user' : 'assistant',
+      content: msg.content
+    }));
+  }
+
 
   async getMessagesByConversationId(conversationId: number): Promise<Message[]> {
     return Array.from(this.messages.values())

@@ -1,18 +1,27 @@
 import OpenAI from "openai";
 import { logger } from '../logger';
 
+
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || ""
 });
 
-export interface AIResponse {
-  content: string;
-  confidence: number;
-  sources: string[];
-}
 
-export class OpenAIService {
+import { ConversationHistoryItem, LLMClient, AIResponse } from "./orchestrator/types";
+
+export class OpenAIService implements LLMClient {
+  async chat(history: ConversationHistoryItem[]): Promise<AIResponse> {
+    // Only keep the last 10 conversation items
+    const recentHistory = history.slice(-10);
+    const context: string[] = recentHistory
+      .filter((item) => item.role === "assistant" || item.role === "user")
+      .map((item) => `${item.role}: ${item.content}`);
+    const lastUserMsg = [...recentHistory].reverse().find((item) => item.role === "user");
+    const query = lastUserMsg?.content || "";
+    const aiResp = await this.generateResponse(query, context);
+    return aiResp;
+  }
   async generateResponse(query: string, context: string[]): Promise<AIResponse> {
     try {
       const systemPrompt = `You are a helpful customer service assistant. Use the provided context to answer user questions accurately and helpfully. If you cannot find the answer in the context, politely say so and suggest they contact support.
@@ -41,9 +50,11 @@ Respond in JSON format with the following structure:
       const result = JSON.parse(response.choices[0].message.content || "{}");
 
       logger.info("OpenAI Response:", result);
+
+      const content = ( result.content || "I'm sorry, I couldn't generate a response." ).replace(/\*\*/g, "*");
       
       return {
-        content: result.content || "I'm sorry, I couldn't generate a response.",
+        content,
         confidence: result.confidence || 0.5,
         sources: result.sources || [],
       };
