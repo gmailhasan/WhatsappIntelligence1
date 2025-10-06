@@ -217,7 +217,7 @@ export class WhatsAppService {
       const chatHistory: ConversationHistoryItem [] = await storage.getChatHistoryForConversation(conversationId) || [];
       const historyWithContext: ConversationHistoryItem[] = [
         ...chatHistory, 
-        ...context.map(content => ({ role: 'assistant' as const, content }))
+        ...context.map(content => ({ role: 'system' as const, content }))
       ];
 
       const aiResponse = await openaiService.chat(historyWithContext);
