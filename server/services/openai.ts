@@ -44,7 +44,7 @@ Respond in JSON format with the following structure:
         ],
         response_format: { type: "json_object" },
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 1200,
       });
 
       const result = JSON.parse(response.choices[0].message.content || "{}");
@@ -90,7 +90,7 @@ Respond in JSON format with the following structure:
           { role: "user", content: content }
         ],
         temperature: 0.5,
-        max_tokens: 200,
+        max_tokens: 1200,
       });
 
       return response.choices[0].message.content || content;
