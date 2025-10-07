@@ -1,6 +1,6 @@
 import React from "react";
 
-const version = "0.0.8"; // also change docker-compose.yml version
+const version = "0.0.9"; // also change docker-compose.yml version
 
 export default function About() {
   return (
