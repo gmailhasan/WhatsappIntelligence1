@@ -287,8 +287,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })),
       };
       logger.info('Received WhatsApp webhook payload', payload);
-      await whatsappService.handleWebhook(payload);
       res.json({ success: true });
+      await whatsappService.handleWebhook(payload);
     } catch (error) {
       logger.error("Failed to process webhook", error);
       res.status(500).json({ error: "Failed to process webhook" });
