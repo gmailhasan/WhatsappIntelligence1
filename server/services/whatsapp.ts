@@ -43,7 +43,10 @@ export class WhatsAppService {
         body: JSON.stringify({
           status,
           messaging_product: 'whatsapp',
-          message_id: messageId
+          message_id: messageId,
+          typing_indicator: {
+            type: "text"
+          }
         })
       });
       if (!response.ok) {
@@ -61,13 +64,13 @@ export class WhatsAppService {
       // For production, replace with actual WhatsApp Business API call
       const whatsappToken = process.env.WHATSAPP_ACCESS_TOKEN;
       const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-      
+
       if (!whatsappToken || !phoneNumberId) {
         // Development mode - log the message
         logger.info(`[DEV] WhatsApp send to ${phoneNumber}: ${message}`);
         return `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
-      
+
       // Production WhatsApp Business API call
       const response = await fetch(`https://graph.facebook.com/v17.0/${phoneNumberId}/messages`, {
         method: 'POST',
@@ -84,12 +87,12 @@ export class WhatsAppService {
           }
         })
       });
-      
+
       if (!response.ok) {
         logger.error(`WhatsApp API error: ${response.status}`);
         throw new Error(`WhatsApp API error: ${response.status}`);
       }
-      
+
       const result = await response.json();
       return result.messages[0].id;
     } catch (error) {
@@ -123,7 +126,7 @@ export class WhatsAppService {
     try {
       const whatsappToken = process.env.WHATSAPP_ACCESS_TOKEN;
       const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-      
+
       if (!whatsappToken || !phoneNumberId) {
         logger.info(`[DEV] WhatsApp template send to ${phoneNumber}: ${templateName}`);
         return `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -186,9 +189,9 @@ export class WhatsAppService {
       // Find or create conversation
       let conversation = await storage.getConversationByPhoneNumber(message.from);
       await this.setStatus(message.id).catch((ex) => {
-        logger.warn('Failed to set message status, continuing anyway.',ex);
+        logger.warn('Failed to set message status, continuing anyway.', ex);
       });
-      
+
       if (!conversation) {
         // Create new conversation - for demo, use userId 1
         conversation = await storage.createConversation({
@@ -217,6 +220,8 @@ export class WhatsAppService {
       // Generate AI response if enabled
       if (conversation.aiEnabled) {
         await this.generateAIResponse(conversation.id, message.text);
+      } else {
+        logger.warn(`AI response not generated - AI disabled for conversation ${conversation.id}`);
       }
     } catch (error) {
       logger.error('Error handling incoming message:', error);
@@ -238,7 +243,7 @@ export class WhatsAppService {
       if (searchResults.length === 0) {
         // No relevant content found
         const fallbackMessage = "I'd be happy to help you! However, I don't have specific information about your question right now. Please contact our support team for more detailed assistance.";
-        
+
         await storage.createMessage({
           conversationId,
           content: fallbackMessage,
@@ -252,9 +257,9 @@ export class WhatsAppService {
 
       // Generate AI response using relevant content
       const context = searchResults.map(result => result.content);
-      const chatHistory: ConversationHistoryItem [] = await storage.getChatHistoryForConversation(conversationId) || [];
+      const chatHistory: ConversationHistoryItem[] = await storage.getChatHistoryForConversation(conversationId) || [];
       const historyWithContext: ConversationHistoryItem[] = [
-        ...chatHistory, 
+        ...chatHistory,
         ...context.map(content => ({ role: 'assistant' as const, content }))
       ];
 
