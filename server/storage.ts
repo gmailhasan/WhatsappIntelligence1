@@ -361,8 +361,17 @@ export class MemStorage implements IStorage {
   }
 }
 
-const memoryStorage = new MemStorage();
 export class MySQLStorage implements IStorage {
+
+  // caching content in memory for faster access
+  private users: Map<number, User> = new Map();
+  private websites: Map<number, Website> = new Map();
+  private websiteContent: Map<number, WebsiteContent> = new Map();
+  private templates: Map<number, Template> = new Map();
+  private campaigns: Map<number, Campaign> = new Map();
+  private conversations: Map<number, Conversation> = new Map();
+  private messages: Map<number, Message> = new Map();
+
   async getChatHistoryForConversation(id: number): Promise<ConversationHistoryItem[] | undefined> {
     const [rows] = await pool.query(
       'SELECT sender, content FROM messages WHERE conversationId = ? ORDER BY createdAt DESC LIMIT 10',
@@ -395,8 +404,13 @@ export class MySQLStorage implements IStorage {
   }
 
   async getWebsitesByUserId(userId: number): Promise<Website[]> {
+  if( this.websites.values().some( website => website.userId==userId) ) {
+    logger.info(`Returning cached websites for userId ${userId}`);
+    return Array.from(this.websites.values()).filter(website => website.userId === userId);
+  }
   const [rows] = await pool.query('SELECT * FROM websites WHERE userId = ?', [userId]);
   logger.info(`Fetched websites for userId ${userId}`);
+  (rows as Website[] ).forEach(website => this.websites.set(website.id, website) );
   return rows as Website[];
   }
 
@@ -425,14 +439,24 @@ export class MySQLStorage implements IStorage {
   }
 
   async getWebsiteContent(websiteId: number): Promise<WebsiteContent[]> {
+    if( this.websiteContent.values().some(content => content.websiteId==websiteId) ) {
+      logger.info(`Returning cached website content for websiteId ${websiteId}`);
+      return Array.from(this.websiteContent.values()).filter(content => content.websiteId === websiteId);
+    }
     const [rows] = await pool.query('SELECT * FROM website_content WHERE websiteId = ?', [websiteId]);
     logger.info(`Fetched website content for websiteId ${websiteId}`);
-    return (rows as WebsiteContent[]).map(row => ({
+    
+
+    const transformedRows = (rows as WebsiteContent[]).map(row => ({
       ...row,
       embedding: typeof row.embedding === 'string' && row.embedding.length > 0
         ? JSON.parse(row.embedding)
         : undefined
     }));
+
+    (transformedRows).forEach(content => this.websiteContent.set(content.id, content) );
+    logger.info(`cached ${ (rows as WebsiteContent[] ).length } content items for websiteId ${websiteId}`);
+    return transformedRows;
   }
 
   async createWebsiteContent(content: Omit<WebsiteContent, "id" | "createdAt">): Promise<WebsiteContent> {
