@@ -1,6 +1,6 @@
 services:
   whatsapp-intelligence:
-    image: hasans30/whatsappintelligence1-whatsapp-intelligence:0.0.13
+    image: hasans30/whatsappintelligence1-whatsapp-intelligence:0.0.14
     build: .
     ports:
       - "80:3400"
