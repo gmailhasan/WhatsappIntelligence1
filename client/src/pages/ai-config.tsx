@@ -202,7 +202,7 @@ export default function AIConfig() {
                   {websites.length} website{websites.length !== 1 ? 's' : ''} configured
                 </p>
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-h-[30vh] overflow-y-auto">
                 <div className="space-y-3">
                   {isLoading ? (
                     <div className="text-center py-4 text-gray-500">Loading websites...</div>
@@ -300,7 +300,7 @@ export default function AIConfig() {
                     AI Response
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+              <CardContent className="max-h-[40vh] overflow-y-auto">
                   <div className="space-y-4">
                     <div className="bg-blue-50 rounded-lg p-4">
                       <p className="text-sm font-medium text-blue-900 mb-2">Response:</p>
