@@ -40,6 +40,16 @@ function Root() {
 	const [loading, setLoading] = useState(true);
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            if(firebaseUser) {
+                const allowedEmails = (import.meta.env.VITE_ALLOWED_EMAILS || "").split(",");
+                if (!allowedEmails.includes(firebaseUser.email || "")) {
+                    // Show access denied and sign out
+                    auth.signOut();
+                    alert("Access Denied");
+                    setLoading(false);
+                    return;
+                }
+            }
 			setUser(firebaseUser);
 			setLoading(false);
 		});
