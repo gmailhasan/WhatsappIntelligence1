@@ -123,7 +123,7 @@ export default function Conversations() {
           <CardContent className="p-0 h-full">
             <div className="grid grid-cols-1 lg:grid-cols-3 h-full">
               {/* Conversation List */}
-              <div className="border-r border-gray-200 h-full flex flex-col">
+              <div className="border-r border-gray-200 h-[75vh] overflow-y-auto flex flex-col">
                 <div className="p-4 border-b border-gray-200">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -193,7 +193,7 @@ export default function Conversations() {
               </div>
 
               {/* Message Thread */}
-              <div className="lg:col-span-2 flex flex-col h-full">
+              <div className="lg:col-span-2 flex flex-col h-[75vh] overflow-y-auto">
                 {selectedConversation ? (
                   <>
                     <div className="p-4 border-b border-gray-200 bg-gray-50">
